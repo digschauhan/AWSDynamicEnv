@@ -18,13 +18,16 @@ resource "aws_security_group" "instance" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
-resource "aws_instance" "tf-sample-ec2" {
+resource "aws_launch_configuration" "tf-sample-ec2-lc" {
 
-  ami           = "ami-e580c79d"
+  image_id           = "ami-e580c79d"
   instance_type = "t2.micro"
-  vpc_security_group_ids = ["${aws_security_group.instance.id}"]
+  security_groups = ["${aws_security_group.instance.id}"]
   
   user_data = <<-EOF
               #!/bin/bash
@@ -32,13 +35,32 @@ resource "aws_instance" "tf-sample-ec2" {
               sudo nohup busybox httpd -f -p "${var.web_server_port}" &
               EOF
 
-  tags {
-  	Name = "tf-sample-ubuntu-1"
+  
+
+  lifecycle {
+    create_before_destroy = true
   }
   
   
 }
 
 output "public_ip" {
-    value = "${aws_instance.tf-sample-ec2.public_ip}"
+    value = "${aws_launch_configuration.tf-sample-ec2-lc.public_ip}"
+}
+
+data "aws_availability_zones" "all" {}
+
+resource "aws_autoscaling_group" "tf-sample-ec2-ASG" {
+  launch_configuration = "${aws_launch_configuration.tf-sample-ec2-lc.id}"
+  availability_zones = ["${data.aws_availability_zones.all.names}"]
+
+  
+  min_size = 2
+  max_size = 5
+
+  tag {
+    key = "Name"
+    value = "tf-sample-ASG"
+    propagate_at_launch = true
+  }
 }

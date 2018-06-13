@@ -39,7 +39,8 @@ resource "aws_launch_configuration" "tf-sample-ec2-lc" {
   user_data = <<-EOF
               #!/bin/bash
               sudo echo "Hello, world from dynamic environment" > index.html
-              sudo echo "${data.terraform_remote_state.db.backend}" >>index.html
+              sudo echo "${data.terraform_remote_state.db.address}" >>index.html
+              sudo echo "${data.terraform_remote_state.db.port}" >>index.html
               sudo nohup busybox httpd -f -p "${var.web_server_port}" &
               EOF
 
